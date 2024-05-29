@@ -6,45 +6,31 @@ import { Project } from "../../types/project";
 import { GetServerSideProps } from "next";
 import LoadingSpinner from "@/components/loading";
 import Dropdown from "@/components/dropDown";
+import Pagination from "@/components/pagination";
 
 type CharityProjectsProps = {
   initialProjects: Project[];
 };
 
-const CharityProjects: React.FC<CharityProjectsProps> = ({
-  initialProjects,
-}) => {
+const ProjectsList: React.FC<CharityProjectsProps> = ({ initialProjects }) => {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [activeTab, setActiveTab] = useState<string>("آخرین پروژه ها");
 
   useEffect(() => {
-    if (initialProjects.length > 0) {
-      setProjects(initialProjects);
-    }
-  }, [initialProjects]);
+    const pages = Math.ceil(projects.length / 10);
+    setTotalPages(pages);
+  }, [projects]);
 
-  const handleSearch = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await ProjectData.GetProjectData(
-        `filter[organization.name]=${searchTerm}`
-      );
-      setProjects(response.data.data);
-      setSearchTerm("");
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      setProjects([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [searchTerm]);
-
-  const handleFilter = useCallback(async (filterQuery: string) => {
+  const fetchProjects = useCallback(async (filterQuery: string = "") => {
     try {
       setLoading(true);
       const response = await ProjectData.GetProjectData(filterQuery);
       setProjects(response.data.data);
+      setCurrentPage(1);
     } catch (error) {
       console.error("Error fetching projects:", error);
       setProjects([]);
@@ -53,28 +39,55 @@ const CharityProjects: React.FC<CharityProjectsProps> = ({
     }
   }, []);
 
+  const handleSearch = useCallback(async () => {
+    await fetchProjects(`filter[organization.name]=${searchTerm}`);
+    setActiveTab("آخرین پروژه ها");
+    setSearchTerm("");
+  }, [fetchProjects, searchTerm]);
+
+  const handleFilter = useCallback(
+    async (filterQuery: string, tabName: string) => {
+      await fetchProjects(filterQuery);
+      setActiveTab(tabName);
+    },
+    [fetchProjects]
+  );
+
   const tabs = useMemo(
     () => [
-      { label: "آخرین پروژه ها", onClick: () => handleFilter("") },
+      {
+        label: "آخرین پروژه ها",
+        onClick: () => handleFilter("", "آخرین پروژه ها"),
+      },
       {
         label: "فعال",
-        onClick: () => handleFilter("filter[status]=in_progress"),
+        onClick: () => handleFilter("filter[status]=in_progress", "فعال"),
       },
       {
         label: "موفق",
-        onClick: () => handleFilter("filter[is_successful]=1"),
+        onClick: () => handleFilter("filter[is_successful]=1", "موفق"),
       },
       {
         label: "حمایت",
-        onClick: () => handleFilter("filter[is_successful]=1&sort=-balance"),
+        onClick: () =>
+          handleFilter("filter[is_successful]=1&sort=-balance", "حمایت"),
       },
     ],
     [handleFilter]
   );
 
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const currentProjects = useMemo(() => {
+    const startIndex = (currentPage - 1) * 10;
+    return projects.slice(startIndex, startIndex + 10);
+  }, [currentPage, projects]);
+
   return (
     <>
-      <div className="md:hidden bg-temcolor  mt-5 w-full">
+      <div className="md:hidden bg-temcolor mt-5 w-full">
         <Dropdown options={tabs} />
       </div>
       <div className="w-full flex flex-col items-center justify-center md:items-start md:justify-start md:flex-row md:mt-10 mt-3">
@@ -89,7 +102,7 @@ const CharityProjects: React.FC<CharityProjectsProps> = ({
               placeholder="جستجو بر اساس نام سازمان"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="border border-gray-300 rounded-lg pl-4 pr-10 py-2 focus:outline-none  w-[340px] md:w-full"
+              className="border border-gray-300 rounded-lg pl-4 pr-10 py-2 focus:outline-none w-[340px] md:w-full"
             />
             <svg
               className="absolute right-3 w-5 h-5 text-gray-500 cursor-pointer"
@@ -111,25 +124,44 @@ const CharityProjects: React.FC<CharityProjectsProps> = ({
 
         <div className="flex flex-col w-full mr-10 mt-2">
           <div className="hidden md:flex">
-            <Tabs tabs={tabs} />
+            <Tabs tabs={tabs} activeTab={activeTab} />
           </div>
 
           {loading ? (
             <LoadingSpinner />
           ) : (
-            <div className="flex flex-wrap mt-2">
-              {projects.map((project) => (
-                <CardPattern
-                  key={project.id}
-                  title={project.name}
-                  subtitle={project.subtitle}
-                  img={project.banner[0]?.url}
-                  status={project.status === "in_progress" ? "فعال" : "موفق"}
-                  organizationname={project.organization.name}
-                  logo={project.organization.logo}
-                />
-              ))}
-            </div>
+            <>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+              <>
+                {currentProjects.length === 0 ? (
+                  <div className="flex justify-center items-center h-[600px]">
+                    <p className="text-red-500 mt-4">
+                      متاسفانه دیتایی یافت نشد
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap mt-2">
+                    {currentProjects.map((project) => (
+                      <CardPattern
+                        key={project.id}
+                        title={project.name}
+                        subtitle={project.subtitle}
+                        img={project.banner[0]?.url}
+                        status={
+                          project.status === "in_progress" ? "فعال" : "موفق"
+                        }
+                        organizationname={project.organization.name}
+                        logo={project.organization.logo}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            </>
           )}
         </div>
       </div>
@@ -155,4 +187,4 @@ export const getServerSideProps: GetServerSideProps = async () => {
   }
 };
 
-export default CharityProjects;
+export default ProjectsList;

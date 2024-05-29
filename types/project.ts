@@ -83,6 +83,7 @@ export interface Tab {
 
 export interface TabsProps {
   tabs: Tab[];
+  activeTab: string;
 }
 export interface ICardPattern {
   title: string;
@@ -92,3 +93,9 @@ export interface ICardPattern {
   organizationname: string;
   logo: string;
 }
+
+export type PaginationProps = {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (newPage: number) => void;
+};
