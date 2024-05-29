@@ -8,7 +8,7 @@ export class ProjectData {
       );
       return response;
     } catch (error) {
-      throw new Error(`Error fetching charity projects: ${error}`);
+      throw new Error(`Error fetching projects: ${error}`);
     }
   }
 }

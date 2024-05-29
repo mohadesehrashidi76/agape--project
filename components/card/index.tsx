@@ -41,7 +41,7 @@ const CardPattern: React.FC<ICardPattern> = ({
           <p className="mb-1 text-sm">12 نفر تا امروز کمک کرده اند</p>
         </div>
         <p className="text-center mt-4">
-          <button className=" bottom-4 right-4 text-temcolor rounded-full w-36 h-10 border border-temcolor">
+          <button className=" bottom-4 right-4 text-temcolor rounded-full w-36 h-10 border border-temcolor ">
             <span>حمایت</span>
             {">"}
           </button>

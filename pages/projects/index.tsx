@@ -5,6 +5,7 @@ import CardPattern from "@/components/card";
 import { Project } from "../../types/project";
 import { GetServerSideProps } from "next";
 import LoadingSpinner from "@/components/loading";
+import Dropdown from "@/components/dropDown";
 
 type CharityProjectsProps = {
   initialProjects: Project[];
@@ -30,8 +31,9 @@ const CharityProjects: React.FC<CharityProjectsProps> = ({
         `filter[organization.name]=${searchTerm}`
       );
       setProjects(response.data.data);
+      setSearchTerm("");
     } catch (error) {
-      console.error("Error fetching charity projects:", error);
+      console.error("Error fetching projects:", error);
       setProjects([]);
     } finally {
       setLoading(false);
@@ -44,7 +46,7 @@ const CharityProjects: React.FC<CharityProjectsProps> = ({
       const response = await ProjectData.GetProjectData(filterQuery);
       setProjects(response.data.data);
     } catch (error) {
-      console.error("Error fetching charity projects:", error);
+      console.error("Error fetching projects:", error);
       setProjects([]);
     } finally {
       setLoading(false);
@@ -58,7 +60,10 @@ const CharityProjects: React.FC<CharityProjectsProps> = ({
         label: "فعال",
         onClick: () => handleFilter("filter[status]=in_progress"),
       },
-      { label: "موفق", onClick: () => handleFilter("filter[is_successful]=1") },
+      {
+        label: "موفق",
+        onClick: () => handleFilter("filter[is_successful]=1"),
+      },
       {
         label: "حمایت",
         onClick: () => handleFilter("filter[is_successful]=1&sort=-balance"),
@@ -68,59 +73,67 @@ const CharityProjects: React.FC<CharityProjectsProps> = ({
   );
 
   return (
-    <div className="w-full flex flex-col md:flex-row mt-10  ">
-      <div className="md:h-[140px] flex flex-col border border-gray-300 rounded-lg p-4 mr-2">
-        <p className="border-b-2 border-gray-300 mb-2 p-2 w-full hidden md:block text-sm">
-          جستجو در نام پروژه یا سازمان
-        </p>
-        <div className="relative flex items-center">
-          <input
-            type="text"
-            placeholder="جستجو بر اساس نام سازمان"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="border border-gray-300 rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-          />
-          <svg
-            className="absolute right-3 w-5 h-5 text-gray-500 cursor-pointer"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            onClick={handleSearch}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M21 21l-4.35-4.35M16 11a5 5 0 10-10 0 5 5 0 0010 0z"
-            ></path>
-          </svg>
-        </div>
+    <>
+      <div className="md:hidden bg-temcolor  mt-5 w-full">
+        <Dropdown options={tabs} />
       </div>
-      <div className="flex flex-col w-full mr-10 mt-2">
-        <div className="hidden md:flex">
-          <Tabs tabs={tabs} />
-        </div>
-        {loading ? (
-          <LoadingSpinner />
-        ) : (
-          <div className="flex flex-wrap mt-2">
-            {projects.map((project) => (
-              <CardPattern
-                key={project.id}
-                title={project.name}
-                subtitle={project.subtitle}
-                img={project.banner[0]?.url}
-                status={project.status === "in_progress" ? "فعال" : "موفق"}
-                organizationname={project.organization.name}
-                logo={project.organization.logo}
-              />
-            ))}
+      <div className="w-full flex flex-col items-center justify-center md:items-start md:justify-start md:flex-row md:mt-10 mt-3">
+        <div className="md:h-[140px] flex flex-col md:border border-gray-300 rounded-lg p-4 mr-2 md:mt-2">
+          <p className="border-b-0 md:border-b-2 md:border-gray-300 mb-2 p-2 w-full hidden md:block text-sm">
+            جستجو در نام پروژه یا سازمان
+          </p>
+
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              placeholder="جستجو بر اساس نام سازمان"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="border border-gray-300 rounded-lg pl-4 pr-10 py-2 focus:outline-none  w-[340px] md:w-full"
+            />
+            <svg
+              className="absolute right-3 w-5 h-5 text-gray-500 cursor-pointer"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              onClick={handleSearch}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-4.35-4.35M16 11a5 5 0 10-10 0 5 5 0 0010 0z"
+              ></path>
+            </svg>
           </div>
-        )}
+        </div>
+
+        <div className="flex flex-col w-full mr-10 mt-2">
+          <div className="hidden md:flex">
+            <Tabs tabs={tabs} />
+          </div>
+
+          {loading ? (
+            <LoadingSpinner />
+          ) : (
+            <div className="flex flex-wrap mt-2">
+              {projects.map((project) => (
+                <CardPattern
+                  key={project.id}
+                  title={project.name}
+                  subtitle={project.subtitle}
+                  img={project.banner[0]?.url}
+                  status={project.status === "in_progress" ? "فعال" : "موفق"}
+                  organizationname={project.organization.name}
+                  logo={project.organization.logo}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -133,7 +146,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
       },
     };
   } catch (error) {
-    console.error("Error fetching all charity projects:", error);
+    console.error("Error fetching projects:", error);
     return {
       props: {
         initialProjects: [],
